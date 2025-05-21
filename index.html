@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Digital Clock with Alarm</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      transition: background 0.5s ease, color 0.5s ease;
+    }
+
+    #clock {
+      font-size: 5rem;
+      margin-bottom: 20px;
+    }
+
+    .controls, .alarm-controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    select, input, button {
+      padding: 10px;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="clock">--:--:--</div>
+
+  <div class="controls">
+    <label for="timezone">Time Zone:</label>
+    <select id="timezone">
+      <option value="local">Local Time</option>
+      <option value="UTC">UTC</option>
+      <option value="America/New_York">New York</option>
+      <option value="America/Los_Angeles">Los Angeles</option>
+      <option value="Europe/London">London</option>
+      <option value="Europe/Paris">Paris</option>
+      <option value="Asia/Dubai">Dubai</option>
+      <option value="Asia/Tokyo">Tokyo</option>
+      <option value="Asia/Kolkata">India</option>
+      <option value="Australia/Sydney">Sydney</option>
+    </select>
+
+    <label for="background">Theme:</label>
+    <select id="background">
+      <option value="light">Light</option>
+      <option value="dark">Dark</option>
+      <option value="sky">Sky</option>
+      <option value="forest">Forest</option>
+      <option value="sunset">Sunset</option>
+    </select>
+  </div>
+
+  <div class="alarm-controls">
+    <label for="alarmTime">Alarm Time:</label>
+    <input type="time" id="alarmTime">
+
+    <label for="alarmSound">Sound:</label>
+    <select id="alarmSound">
+      <option value="beep">Beep</option>
+      <option value="chime">Chime</option>
+      <option value="birds">Birds</option>
+      <option value="ocean">Ocean Waves</option>
+      <option value="piano">Piano Melody</option>
+    </select>
+
+    <button onclick="setAlarm()">Set Alarm</button>
+    <button onclick="clearAlarm()">Clear Alarm</button>
+    <button onclick="snoozeAlarm()">Snooze</button>
+  </div>
+
+  <audio id="alarmAudio"></audio>
+
+  <script>
+    const clockElement = document.getElementById('clock');
+    const timezoneSelector = document.getElementById('timezone');
+    const backgroundSelector = document.getElementById('background');
+    const alarmAudio = document.getElementById('alarmAudio');
+
+    let alarmTime = null;
+    let snoozeTimeout = null;
+    const snoozeMinutes = 5;
+
+    const alarmSounds = {
+      beep: 'https://www.soundjay.com/button/beep-07.wav',
+      chime: 'https://www.soundjay.com/button/beep-08b.wav',
+      birds: 'https://www.soundjay.com/nature/birds-1.mp3',
+      ocean: 'https://www.soundjay.com/nature/ocean-wave-2.mp3',
+      piano: 'https://www.soundjay.com/free-music/piano-and-strings.mp3'
+    };
+
+    function formatAMPM(date) {
+      let hours = date.getHours();
+      let minutes = date.getMinutes();
+      let seconds = date.getSeconds();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // the hour '0' should be '12'
+      minutes = minutes < 10 ? '0' + minutes : minutes;
+      seconds = seconds < 10 ? '0' + seconds : seconds;
+      const strTime = `${hours}:${minutes}:${seconds} ${ampm}`;
+      return strTime;
+    }
+
+    function updateClock() {
+      const timezone = timezoneSelector.value;
+      let now = new Date();
+      if (timezone !== 'local') {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: timezone,
+          hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true
+        });
+        clockElement.textContent = formatter.format(now);
+      } else {
+        clockElement.textContent = formatAMPM(now);
+      }
+
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const currentTime = `${hours}:${minutes}`;
+      if (alarmTime === currentTime) {
+        playAlarm();
+        alarmTime = null;
+      }
+    }
+
+    function setAlarm() {
+      const inputTime = document.getElementById('alarmTime').value;
+      if (!inputTime) {
+        alert("Please select a time for the alarm.");
+        return;
+      }
+      alarmTime = inputTime;
+      const selectedSound = document.getElementById('alarmSound').value;
+      alarmAudio.src = alarmSounds[selectedSound];
+      alarmAudio.loop = true;
+      alert(`Alarm set for ${alarmTime}`);
+    }
+
+    function clearAlarm() {
+      alarmTime = null;
+      alarmAudio.pause();
+      alarmAudio.currentTime = 0;
+      clearTimeout(snoozeTimeout);
+      alert("Alarm cleared.");
+    }
+
+    function playAlarm() {
+      alarmAudio.play();
+      alert("Alarm ringing! Click 'Snooze' to delay.");
+    }
+
+    function snoozeAlarm() {
+      if (!alarmAudio.paused) {
+        alarmAudio.pause();
+        alarmAudio.currentTime = 0;
+        const snoozeTime = new Date();
+        snoozeTime.setMinutes(snoozeTime.getMinutes() + snoozeMinutes);
+        const h = snoozeTime.getHours().toString().padStart(2, '0');
+        const m = snoozeTime.getMinutes().toString().padStart(2, '0');
+        alarmTime = `${h}:${m}`;
+        alert(`Snoozed until ${alarmTime}`);
+      }
+    }
+
+    function updateBackground() {
+      const bg = backgroundSelector.value;
+      switch (bg) {
+        case 'light':
+          document.body.style.background = '#ffffff';
+          document.body.style.color = '#000';
+          break;
+        case 'dark':
+          document.body.style.background = '#000000';
+          document.body.style.color = '#fff';
+          break;
+        case 'sky':
+          document.body.style.background = 'skyblue';
+          document.body.style.color = '#000';
+          break;
+        case 'forest':
+          document.body.style.background = '#228B22';
+          document.body.style.color = '#fff';
+          break;
+        case 'sunset':
+          document.body.style.background = 'linear-gradient(to top, #ff9966, #ff5e62)';
+          document.body.style.color = '#fff';
+          break;
+      }
+    }
+
+    timezoneSelector.addEventListener('change', updateClock);
+    backgroundSelector.addEventListener('change', updateBackground);
+
+    setInterval(updateClock, 1000);
+    updateClock();
+    updateBackground();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
